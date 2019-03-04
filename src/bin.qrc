@@ -3,5 +3,6 @@
         <file>bin/close.ico</file>
         <file>bin/no_connect.ico</file>
         <file>bin/open.ico</file>
+        <file>bin/Ubuntu-L.ttf</file>
     </qresource>
 </RCC>
