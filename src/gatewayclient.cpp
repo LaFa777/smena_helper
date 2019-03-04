@@ -32,10 +32,24 @@ void GatewayClient::stop()
  */
 void GatewayClient::response(QNetworkReply *reply)
 {
+    if (reply->error() != QNetworkReply::NoError)
+    {
+        emit this->changeState(SmenaState::DISCONNECT);
+        return;
+    }
+
     QString strReply = (QString)reply->readAll();
     QJsonDocument jsonResponse = QJsonDocument::fromJson(strReply.toUtf8());
 
-    QString status = jsonResponse.object()["rooms"].toObject()["restroom"].toObject()["status"].toString();
+    QString status;
+    auto rooms = jsonResponse.object()["rooms"].toArray();
+    foreach (auto json_room, rooms) {
+        auto room = json_room.toObject();
+        if (QString::compare(room["name"].toString(), "restroom", Qt::CaseInsensitive) == 0)
+        {
+              status = room["status"].toString();
+        }
+    }
     if (status.indexOf("open") >= 0)
     {
         emit this->changeState(SmenaState::OPEN);
@@ -45,17 +59,34 @@ void GatewayClient::response(QNetworkReply *reply)
 }
 
 /**
+ * @brief Формирует уникальное имя пользователя
+ */
+QString GatewayClient::getCurrentUserName()
+{
+    // достаем имя пользователя
+    QStringList homePath = QStandardPaths::standardLocations(QStandardPaths::HomeLocation);
+    QString username = homePath.first().split(QDir::separator()).last();
+
+    QString host_name = QSysInfo::machineHostName();
+
+    username = username + "." + host_name;
+
+    return username;
+}
+
+/**
  * @brief Выполняет запрос на шлюз
  */
 void GatewayClient::request()
 {
     // если пользователь бездействует более n секунд, то прерываем выполнение запросов
     if (ActivityAgent::getInstance()->getTimeLastActivity().addSecs(INACTIVE_AFTER_SECONDS) <= QDateTime::currentDateTime())
+    {
+        emit this->changeState(SmenaState::DISCONNECT);
         return;
+    }
 
-    // достаем имя пользователя
-    QStringList homePath = QStandardPaths::standardLocations(QStandardPaths::HomeLocation);
-    QString username = homePath.first().split(QDir::separator()).last();
+    auto username = this->getCurrentUserName();
 
     QUrlQuery query;
     query.addQueryItem("user", username);

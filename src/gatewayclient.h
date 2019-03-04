@@ -15,11 +15,12 @@
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QJsonValueRef>
+#include <QSysInfo>
 
 #include "src/activityagent.h"
 
 #define INACTIVE_AFTER_SECONDS 35
-#define GATEWAY_STATUS_URL "http://192.168.1.100:1228/get/status/"
+#define GATEWAY_STATUS_URL "http://192.168.1.100:8000/status/"
 
 enum SmenaState {
     DISCONNECT,
@@ -40,6 +41,7 @@ private:
     QTimer *timerUpdate;
     const int TIMEOUT_BETWEEN_REQUEST = 1000; // msec
 
+    QString getCurrentUserName();
 signals:
     void changeState(SmenaState state);
 
