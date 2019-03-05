@@ -5,6 +5,7 @@
 #include <QMenu>
 #include <QApplication>
 #include <QIcon>
+#include <QDebug>
 
 
 #include <QThread>
@@ -28,6 +29,7 @@ private:
 
 public slots:
     void setState(SmenaState state);
+    void needUpdateAlert();
 };
 
 #endif // TRAYICON_H

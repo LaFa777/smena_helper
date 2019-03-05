@@ -21,12 +21,15 @@
 
 #define INACTIVE_AFTER_SECONDS 35
 #define GATEWAY_STATUS_URL "http://192.168.1.100:8000/status/"
+#define GATEWAY_SETTINGS_URL "http://192.168.1.100:8000/settings/"
 
 enum SmenaState {
     DISCONNECT,
     OPEN,
     CLOSE,
 };
+
+#define APP_VERSION 1
 
 class GatewayClient : public QObject
 {
@@ -39,15 +42,20 @@ public:
 private:
     QNetworkAccessManager *networkManager;
     QTimer *timerUpdate;
+    QJsonObject settings;
     const int TIMEOUT_BETWEEN_REQUEST = 1000; // msec
 
     QString getCurrentUserName();
+    void handleStatus(QNetworkReply *reply);
+    void handleSettings(QNetworkReply *reply);
 signals:
     void changeState(SmenaState state);
+    void updateAvailable();
 
 public slots:
     void response(QNetworkReply* reply);
     void request();
+    void updateSettings();
 };
 
 #endif // GATEWAYCLIENT_H

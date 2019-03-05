@@ -23,13 +23,14 @@ int main(int argc, char *argv[])
     }
 #endif
 
-    GatewayClient *client = new GatewayClient();
+    GatewayClient *client = new GatewayClient(app.parent());
     client->run();
 
-    TrayIcon *tray = new TrayIcon();
+    TrayIcon *tray = new TrayIcon(app.parent());
     tray->show();
 
     QObject::connect(client, SIGNAL(changeState(SmenaState)), tray, SLOT(setState(SmenaState)));
+    QObject::connect(client, SIGNAL(updateAvailable()), tray, SLOT(needUpdateAlert()));
 
     // запускаем мониторинг активности пользователя
     ActivityAgent* monitoring = ActivityAgent::getInstance();

@@ -4,6 +4,7 @@ TrayIcon::TrayIcon(QObject *parent) :
     QSystemTrayIcon(parent)
 {
     this->initMenu();
+    this->prevSmenaState = SmenaState::OPEN;
     this->setState(SmenaState::DISCONNECT);
 
     this->monitoring = ActivityAgent::getInstance();
@@ -28,20 +29,30 @@ void TrayIcon::initMenu()
 void TrayIcon::setState(SmenaState state)
 {
     // если state не изменился, то не меняем иконку
-    if (prevSmenaState == state)
+    if (this->prevSmenaState == state)
         return;
+
+    this->prevSmenaState = state;
 
     QIcon icon;
     switch (state) {
         case SmenaState::OPEN:
             icon = QIcon(":/bin/open.ico");
+            this->setToolTip("Беги скорей");
             break;
         case SmenaState::CLOSE:
             icon = QIcon(":/bin/close.ico");
+            this->setToolTip("Пока что занято =(");
             break;
         default:
             icon = QIcon(":/bin/no_connect.ico");
+            this->setToolTip("Нет соединения с сервером");
             break;
     }
     this->setIcon(icon);
+}
+
+void TrayIcon::needUpdateAlert()
+{
+    this->showMessage("Доступно обновление", "Пожалуйста обновитесь");
 }

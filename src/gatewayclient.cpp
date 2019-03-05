@@ -6,6 +6,7 @@ GatewayClient::GatewayClient(QObject *parent) : QObject(parent)
     this->networkManager = new QNetworkAccessManager();
 
     connect(timerUpdate, SIGNAL(timeout()), this, SLOT(request()));
+    connect(timerUpdate, SIGNAL(timeout()), this, SLOT(updateSettings()));
     connect(networkManager, SIGNAL(finished(QNetworkReply*)), this, SLOT(response(QNetworkReply*)));
 }
 
@@ -27,17 +28,10 @@ void GatewayClient::stop()
 }
 
 /**
- * @brief callback для ответа сервера
- * @param reply
+ * @brief Обрабатывает ответ от /status/
  */
-void GatewayClient::response(QNetworkReply *reply)
+void GatewayClient::handleStatus(QNetworkReply *reply)
 {
-    if (reply->error() != QNetworkReply::NoError)
-    {
-        emit this->changeState(SmenaState::DISCONNECT);
-        return;
-    }
-
     QString strReply = (QString)reply->readAll();
     QJsonDocument jsonResponse = QJsonDocument::fromJson(strReply.toUtf8());
 
@@ -56,6 +50,40 @@ void GatewayClient::response(QNetworkReply *reply)
     } else {
         emit this->changeState(SmenaState::CLOSE);
     }
+}
+
+void GatewayClient::handleSettings(QNetworkReply *reply)
+{
+    QString strReply = (QString)reply->readAll();
+    QJsonDocument jsonResponse = QJsonDocument::fromJson(strReply.toUtf8());
+    auto settings = jsonResponse.object();
+    // проверяем наличие новых версий
+    static bool show_alert = false;
+    if (settings["app_version"].toInt() > APP_VERSION && !show_alert)
+    {
+        emit this->updateAvailable();
+        show_alert = true;
+    }
+}
+
+/**
+ * @brief callback для ответа сервера
+ * @param reply
+ */
+void GatewayClient::response(QNetworkReply *reply)
+{
+    if (reply->error() != QNetworkReply::NoError)
+    {
+        emit this->changeState(SmenaState::DISCONNECT);
+        return;
+    }
+
+    auto url = reply->url();
+    auto path = url.path();
+    if (path.indexOf("/settings/") == 0)
+        this->handleSettings(reply);
+    else if (path.indexOf("/status/") == 0)
+        this->handleStatus(reply);
 }
 
 /**
@@ -94,7 +122,26 @@ void GatewayClient::request()
     QUrl url(GATEWAY_STATUS_URL);
     url.setQuery(query);
 
-    QNetworkRequest *request = new QNetworkRequest(url);
+    QNetworkRequest request(url);
 
-    this->networkManager->get(*request);
+    this->networkManager->get(request);
+}
+
+/**
+ * @brief Обновляет настройки (берет с сервера)
+ */
+void GatewayClient::updateSettings()
+{
+    auto username = this->getCurrentUserName();
+
+    QUrlQuery query;
+    query.addQueryItem("user", username);
+
+    QUrl url(GATEWAY_SETTINGS_URL);
+
+    url.setQuery(query);
+
+    QNetworkRequest request(url);
+
+    this->networkManager->get(request);
 }
